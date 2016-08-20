@@ -26,7 +26,7 @@ public class BigFileReader {
 	private Set<StartEndPair> startEndPairs;
 	private CyclicBarrier cyclicBarrier;
 	private AtomicLong counter = new AtomicLong(0);
-	
+
 	private BigFileReader(File file,IHandle handle,String charset,int bufferSize,int threadSize){
 		this.fileLength = file.length();
 		this.handle = handle;
@@ -41,7 +41,7 @@ public class BigFileReader {
 		this.executorService = Executors.newFixedThreadPool(threadSize);
 		startEndPairs = new HashSet<BigFileReader.StartEndPair>();
 	}
-	
+
 	public void start(){
 		long everySize = this.fileLength/this.threadSize;
 		try {
@@ -50,10 +50,10 @@ public class BigFileReader {
 			e.printStackTrace();
 			return;
 		}
-		
+
 		final long startTime = System.currentTimeMillis();
 		cyclicBarrier = new CyclicBarrier(startEndPairs.size(),new Runnable() {
-			
+
 			@Override
 			public void run() {
 				System.out.println("use time: "+(System.currentTimeMillis()-startTime));
@@ -65,7 +65,7 @@ public class BigFileReader {
 			this.executorService.execute(new SliceReaderTask(pair));
 		}
 	}
-	
+
 	private void calculateStartEnd(long start,long size) throws IOException{
 		if(start>fileLength-1){
 			return;
@@ -78,7 +78,7 @@ public class BigFileReader {
 			startEndPairs.add(pair);
 			return;
 		}
-		
+
 		rAccessFile.seek(endPosition);
 		byte tmp =(byte) rAccessFile.read();
 		while(tmp!='\n' && tmp!='\r'){
@@ -92,13 +92,10 @@ public class BigFileReader {
 		}
 		pair.end=endPosition;
 		startEndPairs.add(pair);
-		
+
 		calculateStartEnd(endPosition+1, size);
-		
 	}
-	
-	
-	
+
 	public void shutdown(){
 		try {
 			this.rAccessFile.close();
@@ -122,7 +119,7 @@ public class BigFileReader {
 	private static class StartEndPair{
 		public long start;
 		public long end;
-		
+
 		@Override
 		public String toString() {
 			return "star="+start+";end="+end;
@@ -152,7 +149,7 @@ public class BigFileReader {
 				return false;
 			return true;
 		}
-		
+
 	}
 	private class SliceReaderTask implements Runnable{
 		private long start;
@@ -167,7 +164,7 @@ public class BigFileReader {
 			this.sliceSize = pair.end-pair.start+1;
 			this.readBuff = new byte[bufferSize];
 		}
-		
+
 		@Override
 		public void run() {
 			try {
@@ -199,9 +196,9 @@ public class BigFileReader {
 				e.printStackTrace();
 			}
 		}
-		
+
 	}
-	
+
 	public static class Builder{
 		private int threadSize=1;
 		private String charset=null;
@@ -214,26 +211,24 @@ public class BigFileReader {
 				throw new IllegalArgumentException("文件不存在！");
 			this.handle = handle;
 		}
-		
+
 		public Builder withTreahdSize(int size){
 			this.threadSize = size;
 			return this;
 		}
-		
+
 		public Builder withCharset(String charset){
 			this.charset= charset;
 			return this;
 		}
-		
+
 		public Builder withBufferSize(int bufferSize){
 			this.bufferSize = bufferSize;
 			return this;
 		}
-		
+
 		public BigFileReader build(){
 			return new BigFileReader(this.file,this.handle,this.charset,this.bufferSize,this.threadSize);
 		}
 	}
-	
-	
 }
